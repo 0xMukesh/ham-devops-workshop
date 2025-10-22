@@ -27,7 +27,7 @@ style: |
 <!-- _header: Table of Content -->
 
 1. Intro to DevOps
-2. Version Control Systems/Source control system
+2. Version Control System
 3. Github actions
 4. Containerization
 5. Orchestration
@@ -191,5 +191,49 @@ style: |
 - Run `git commit -m "yay! x2"` and `git push -u origin main`
 
 - Well, that was a teeny-tiny bit of git basics which would be helpful while following through this workshop
+
+---
+
+<!-- _header: Intro to Github actions -->
+
+- Github initially started off a cloud based service for hosting git repos, it later launched multiple different products and one of them is Github actions.
+- Github actions is an automation tool which allow developer to run some automation code based on certain triggers (i.e. whenever a push to `main` branch takes places or whenever a new pull request is created) or cron schedule. Hence, it is heavily used in CI/CD pipelines.
+- Github actions provides runners aka compute (VMs) for executing the automation code. (with some limits, and they even provide the option to bring in your own compute as well aka self hosted runners) [[1]]
+- In this workshop, we'll take a look at how to create a simple github action - what is the general structure of a gitub action configuration file, what each of the keyword is for and in what ways can we can use github actions.
+- Apart from that, we would also talk a brief look at how to use our laptop as compute while running Github actions.
+
+[1]: https://docs.github.com/en/actions/concepts/runners
+
+---
+
+<!-- _header: Intro to Github actions -->
+
+- Open the "git_test" folder which you created a while back ago and is linked to a github repo.
+- Create a new folder named `.github/workflows` under which we would be writing our configuration files for github actions.
+- Github actions using YAML (Yet Another Markup Lanugage) for writing down the configuration.
+- Create a file named `test_job.yaml` under `.github/workflows` folder with the following content
+- Track the file via `git add`, stage the changes using `git commit` and push the changes to github repo using `git push`
+
+---
+
+```yaml
+name: demo workflow
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  say-hello:
+    runs-on: ubuntu-latest
+    steps:
+      - name: print hello world
+        run: echo "hello, world!"
+```
+
+---
+
+<!-- _header: Intro to Github actions -->
 
 ---
