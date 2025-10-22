@@ -1,0 +1,16 @@
+{
+  "name": "ham-devops-workshop",
+  "scripts": {
+    "build:pdf": "marp --pdf -I content --theme ./themes/academic.css --allow-local-files --output ./pdfs"
+  },
+  "devDependencies": {
+    "@marp-team/marp-cli": "^4.2.3"
+  },
+  "marp": {
+    "allowLocalFiles": true,
+    "html": true,
+    "inputDir": "src",
+    "output": "dist",
+    "engine": "./engine.js"
+  }
+}
