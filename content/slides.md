@@ -517,3 +517,65 @@ CMD ["python", "webserver.py"]
 - Go to http://127.0.0.1:8080 and the server should respond with "pong"
 
 ---
+
+<!-- _header: Intro to Docker -->
+
+- Before jumping into the next part of the workshop, let's take a moment and understand how does Docker work under the hood briefly.
+- Docker mainly uses two core Linux kernel APIs namely `cgroup` and `namespaces` which allows Docker to create the _isolated_ containers with _restricted_ amount of resources.
+- Each of the namespace share the same host's OS kernel instead or running their own kernel.
+- `cgroup` and `namespaces` are APIs provided by Linux kernel which allow Docker to isolate different containers (aka processes) and control resource consumed by each process.
+- Docker isn't natively supported on Windows due to this dependency on Linux kernel features. Docker on Windows runs a very light weight Linux VM using WSL and executes the containers via that.
+
+---
+
+<!-- _header: Intro to Docker -->
+
+- Docker reads a `Dockerfile` from top to bottom
+- Each instruction (`FROM`, `COPY`, `RUN` etc.) creates an immutable layer which is addressed by a SHA256 hash.
+- Layers are read-only filesystem snapshots representing the incremental changes in a Docker image.
+- When multiple images share identical layers (eg. same base image) then Docker reuses them, reducing disk use and speeding up build time.
+- Layers are stacked using a union filesystem, forming the file Docker image.
+- If an instruction and its inputs are unchanged from a previous build, Docker reuses the cached build instead of rebuilding it.
+- Once a layer changes, all the layers after it are invalidated and rebuilt.
+- That is the reason why less frequently changed instructions (eg. installing system deps) are placed earlier in the Dockerfile for maximum cache reuse.
+
+---
+
+<!-- _header: Intro to Docker -->
+
+- Multi-stage builds are generally used for optimizing the final size of the Docker image, where multiple temporary images are created within a single Dockerfile and each image has only access to the build output of the previous one, thereby reducing the final size of the Docker image
+- Using small base images for final stage is another approach for optimizing the final size of the Docker image. Using slim base images like alphine or distroless images is a good approach
+
+---
+
+<!-- _header: Intro to Docker -->
+
+```docker
+FROM node:20-alpine as builder
+WORKDIR /app
+RUN yarn global add turbo
+COPY . ./
+RUN turbo prune --scope=@cleopetra/ingestor --docker
+
+FROM node:20-alpine as installer
+WORKDIR /app
+RUN yarn global add pnpm
+
+COPY --from=builder /app/out/full/.gitignore ./.gitignore
+COPY --from=builder /app/out/full/turbo.json ./turbo.json
+COPY --from=builder /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --from=builder /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
+COPY --from=builder /app/out/full/ .
+
+RUN pnpm install --no-frozen-lockfile --ignore-scripts
+RUN pnpm build:ingestor
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+
+COPY --from=installer /app .
+
+CMD ["node", "./apps/ingestor/dist/index.js"]
+```
+
+---
