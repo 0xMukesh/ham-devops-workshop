@@ -1,0 +1,13 @@
+name: fetch joke
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  fetch-joke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: fetch random joke
+        run: curl -s https://official-joke-api.appspot.com/random_joke | jq

@@ -1,0 +1,16 @@
+name: read file
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  read-file:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v3
+
+      - name: print contents of output.txt
+        run: cat output.txt

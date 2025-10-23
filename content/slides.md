@@ -211,7 +211,7 @@ style: |
 - Open the "git_test" folder which you created a while back ago and is linked to a github repo.
 - Create a new folder named `.github/workflows` under which we would be writing our configuration files for github actions.
 - Github actions using YAML (Yet Another Markup Lanugage) for writing down the configuration.
-- Create a file named `test_job.yaml` under `.github/workflows` folder with the following content
+- Create a file named `hello_world.yaml` under `.github/workflows` folder with the following content
 - Track the file via `git add`, stage the changes using `git commit` and push the changes to github repo using `git push`
 
 ---
@@ -235,5 +235,204 @@ jobs:
 ---
 
 <!-- _header: Intro to Github actions -->
+
+- Clicks on the "Actions" tab in your Github repo and then click on "demo workflow"
+- Click on your latest commit and then click on the "say-hello" job
+- Within the logs, you'd clearly see that "hello, world!" is printed
+- Yay! Before moving forward, let's understand what each of the keywords mean in the above configuration file
+- `on` is used for specificing on which event trigger should this workflow should be ran [[1]]
+- `jobs` is used for mentioning the different jobs each of which has multiple steps and each job is ran on a different runner i.e. you can have two different jobs within the same workflow where one of them runs on linux and other one runs on windows
+
+[1]: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows
+
+---
+
+<!-- _header: Intro to Github actions -->
+
+- Let's now try to read content of a file (which is present within the github repo) and print out its content, whenever a push to `main` branch takes place
+- We'd need to use `actions/checkout` action for this which would clone the repository contents into the workflow runner
+- Create a new file named `output.txt` and push it to the github repo (same steps as we've done previously)
+- Create a new file named `read_file.yaml` under `.github/workflows` folder
+
+---
+
+<!-- _header: Intro to Github actions -->
+
+```yaml
+name: read file
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  read-file:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v3
+
+      - name: print contents of output.txt
+        run: cat output.txt
+```
+
+---
+
+<!-- _header: Intro to Github actions -->
+
+- In this job, we've two steps - "checkout repo" and "print contents of output.txt"
+- The checkout repo step clones the repository in the workflow runner so that the workflow runner now has access to the repo's files
+- For displaying the content, `cat` command is used
+- Let's write one final workflow which is triggered periodically based on CRON schedule, something like sending a request to a random joke API every 5 minutes and printing out the response
+- Create a new file named `fetch_joke.yaml` under `.github/workflows` directory
+
+---
+
+<!-- _header: Intro to Github actions -->
+
+```yaml
+name: fetch joke
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  fetch-joke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: fetch random joke
+        run: curl -s https://official-joke-api.appspot.com/random_joke | jq
+```
+
+---
+
+<!-- _header: Intro to Github actions -->
+
+- `*/5 * * * *` is a CRON schedule which translates to every 1 minute
+
+  ```
+  ┌───────────── minute (0–59)
+  │ ┌─────────── hour (0–23)
+  │ │ ┌───────── day of the month (1–31)
+  │ │ │ ┌─────── month (1–12)
+  │ │ │ │ ┌───── day of the week (0–6, Sunday=0)
+  │ │ │ │ │
+  │ │ │ │ │
+  * * * * *
+  ```
+
+- `workflow_dispatch` allows the developer to manually trigger the workflow for quick debugging
+- `curl` is used for sending HTTP request to the random joke API and the output is piped into the input of `jq` which formats the JSON response
+
+---
+
+<!-- _header: Intro to Github actions -->
+
+- Let's now try out self-hosted runners
+- Go to your github repo and click on "Actions" tab and then on "Runners"
+- Click on "Self-hosted runners" and choose your operating system and run the set of commands
+- To start the runner, run the `run` script
+- Now to your the self-hosted runner in our workflows, change `runs-on: ubuntu-latest` to `runs-on: self-hosted` in any one of the workflows
+
+---
+
+<!-- _header: Intro to Github actions -->
+
+```yaml
+name: demo workflow
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  say-hello:
+    runs-on: self-hosted
+    steps:
+      - name: print hello world
+        run: echo "hello, world!"
+```
+
+---
+
+<!-- _header: Virtualization and Containerization -->
+
+- Within virtualization and containerization, we're basically running a "computer" inside a computer
+- But, what's the point of running a computer inside a computer?
+  - Isolation and testing the software on different operating systems and hardware specs without extra physical resources
+  - Running multiple machines on a single computer for resource utilization efficiency (vRAM)
+- One of the main difference between virtualization and containerization is that within virtualization, a complete virtual OS is present with its on own kernel on top of the hypervisor
+- In containerization, it uses the host OS kernel and it is generally much lighter than running VMs
+
+<!-- - In containerization and virtualization, we're basically have a computer inside our computer, but what's the main use of it?
+  - Isolation and testing on different OS, different hardware models without extra resources
+  - Running multiple machines on a single computer for resource utilization efficiency
+- One of main difference is that in virtualization, the complete OS is virtualizaed i.e. a VM has it's own OS kernel on top of the hypervisor. In containerization, it uses the host OS kernel.
+- Containers are much lighter than VMs and containers are meant to be "distributed" and "disposable" i.e. long term data isn't to be stored on the container -->
+
+---
+
+<!-- _header: Virtualization and Containerization -->
+
+- Containers are meant to be distributed and dispoable i.e. long term data isn't meant to be stored on the container
+- Within this workshop, we'd be mainly focusing on containerization
+- There are a lot of tools which helps you to create and manage containers. Few of the popular ones are Docker and Podman
+- Docker needs background service (daemon, `dockerd`) to run containers. Podman runs containers without that service and can without root access, isolating the container processes under user's own permissions
+- Podman is a daemonless container engine
+
+---
+
+![bg 30%](./assets/but_it_works_on_my_machine.png)
+
+---
+
+<!-- _header: Intro to Docker -->
+
+- Before jumping into the details of Docker, let's go through some basic terminology which is commonly used in the context of Docker
+- **Images**: Docker images are read-only template for creating the container. Each image is built in layers where each layer represents some operations such as installing a specific system library, setting some environment variable or exposing a port
+- **Dockerfile**: Dockerfile is the script via which docker images are generated
+- **Containers**: Docker containers are the running isolated instances of the Docker image
+- **Volumes**: Volumes are the location on your computer where the docker container store data which is meant to be persisted for a long time (persistent storage)
+
+---
+
+<!-- _header: Intro to Docker -->
+
+- For installing Docker, please follow the below instructions:
+  - On Windows/MacOS, install Docker desktop - https://www.docker.com/products/docker-desktop/
+  - On Ubuntu/Debain, go through this article by DigitalOcean (On ubuntu/debian, go through this article by DO - https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-20-04)
+  - On Arch, run the following commands
+    ```
+    sudo pacman -S docker
+    sudo systemctl enable --now docker
+    sudo usermod -aG docker $USER
+    ```
+
+---
+
+<!-- _header: Intro to Docker -->
+
+- Let's now run Ubuntu using docker
+
+  ```bash
+  docker run -it ubuntu:latest bash
+  ```
+
+- `docker run` command is used to run Docker images
+- `-it` flag indicates that run it in interactive mode
+- `ubuntu:latest` is the latest image of Ubuntu from Dockerhub
+- `bash` is the command which is to ran within the container
+
+---
+
+<!-- _header: Intro to Docker -->
+
+- Let's now try to play a bit more and try to attach GUI
+- For this, we're doing to use VNC (Virtual Network Computing) which is a protocol that allows remote control of another computer over network
+- Install RealVNC Client on your laptop -
 
 ---
