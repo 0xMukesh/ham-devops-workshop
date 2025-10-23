@@ -433,6 +433,87 @@ jobs:
 
 - Let's now try to play a bit more and try to attach GUI
 - For this, we're doing to use VNC (Virtual Network Computing) which is a protocol that allows remote control of another computer over network
-- Install RealVNC Client on your laptop -
+- Run the following command
+
+  ```
+  docker run -p 6080:80 -v /dev/shm:/dev/shm dorowu/ubuntu-desktop-lxde-vnc
+  ```
+
+- Open http://127.0.0.1:6080 in your browser and you should be able to see a desktop GUI
+
+- `-p` flag maps a port on the host to a port inside the container
+- `-v` flag mounts a directory or file from host into the container
+- `dorowu/ubuntu-desktop-lxde-vnc` is the name of the docker image
+
+---
+
+<!-- _header: Intro to Docker -->
+
+- Until now, we have been playing with docker using docker image made by other people. Now let's make a docker image by ourselves using dockerfile
+- Let's write a Dockerfile to containerize a simple HTTP server written in python using `http` module
+- The code for the HTTP server is available at https://github.com/0xMukesh/ham-devops-workshop/blob/main/misc/webserver.py
+- Create a new file named `Dockerfile` where we would write the _recipe_ for on how to generate the docker image
+
+---
+
+```python
+from http.server import SimpleHTTPRequestHandler, HTTPServer
+
+
+class CustomHandler(SimpleHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == "/":
+            self.send_response(200)
+            self.send_header("Content-type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"pong")
+        else:
+            super().do_GET()
+
+
+HOST = "0.0.0.0"
+PORT = 8080
+
+if __name__ == "__main__":
+    server = HTTPServer((HOST, PORT), CustomHandler)
+    server.serve_forever()
+```
+
+---
+
+<!-- _header: Intro to Docker -->
+
+```docker
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY webserver.py .
+
+EXPOSE 8080
+
+CMD ["python", "webserver.py"]
+```
+
+- `FROM` keyword is used to set the base image to build from
+- `WORKDIR` keyword is used to set the working directory and all the subsequent commands like `COPY`, `RUN` and `CMD` are executed within that directory
+- `COPY` keyword copies a file from local directory into the container's working directory
+
+---
+
+<!-- _header: Intro to Docker -->
+
+- `EXPOSE` keyword declares/gives a signal to the user and orchestration tools that the application is listening on that specific port
+- `CMD` keyword specific the default command which is to be ran when the container starts
+
+---
+
+<!-- _header: Intro to Docker -->
+
+- To build the docker image, run `docker build -t http-server .` within the directory which has `Dockerfile`
+- Run `docker images` to get a list of all the available locally
+- Run `docker system prune -a` to remove all docker images, containers, networks and build cache
+- Run `docker run -p 8080:8080 http-server` to start the python web server
+- Go to http://127.0.0.1:8080 and the server should respond with "pong"
 
 ---
