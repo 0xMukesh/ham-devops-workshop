@@ -32,7 +32,6 @@ style: |
 4. Containerization
 5. Orchestration
 6. Infrastructure as Code
-7. Monitoring
 
 ---
 
@@ -451,7 +450,7 @@ jobs:
 
 - Until now, we have been playing with docker using docker image made by other people. Now let's make a docker image by ourselves using dockerfile
 - Let's write a Dockerfile to containerize a simple HTTP server written in python using `http` module
-- The code for the HTTP server is available at https://github.com/0xMukesh/ham-devops-workshop/blob/main/misc/webserver.py
+- The code for the HTTP server is available at https://github.com/0xMukesh/ham-devops-workshop/blob/main/misc/webserver_basic.py
 - Create a new file named `Dockerfile` where we would write the _recipe_ for on how to generate the docker image
 
 ---
@@ -488,11 +487,11 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY webserver.py .
+COPY webserver_basic.py .
 
 EXPOSE 8080
 
-CMD ["python", "webserver.py"]
+CMD ["python", "webserver_basic.py"]
 ```
 
 - `FROM` keyword is used to set the base image to build from
@@ -544,7 +543,7 @@ CMD ["python", "webserver.py"]
 <!-- _header: Intro to Docker -->
 
 - Multi-stage builds are generally used for optimizing the final size of the Docker image, where multiple temporary images are created within a single Dockerfile and each image has only access to the build output of the previous one, thereby reducing the final size of the Docker image
-- Using small base images for final stage is another approach for optimizing the final size of the Docker image. Using slim base images like alphine or distroless images is a good approach
+- Using small base images for final stage is another approach for optimizing the final size of the Docker image. Using slim base images like alpine or distroless images is a good approach
 
 ---
 
@@ -579,3 +578,174 @@ CMD ["node", "./apps/ingestor/dist/index.js"]
 ```
 
 ---
+
+<!-- _header: Intro to Docker compose -->
+
+- The web server example which we saw earlier was very simple. Most of the times, your web server would need to communicate with some data source like a database
+- We can containerize both database and the web server application and run the individually but the issue with that is we need to separate the networking between them and apart from that we would need to manually type in the start commands for both of them, so prune to a lot of typos
+- To remove this hassle, Docker compose was introduced. It is a simple tool which is used to define and run multiple containers within a single host
+
+---
+
+<!-- _header: Intro to Docker compose -->
+
+- Copy the `webserver_advanced.py` and `requirements.txt` file from `misc` folder of the reference github repo (https://github.com/0xmukesh/ham-devops-workshop)
+- Let's first create a dockerfile for our webserver. Create a new dockerfile named `Dockerfile.advanced` (`.advanced` suffix is just used to differentiate between the dockerfiles of this webserver and the previous one)
+- Within this, we would need to copy both the source code and `requirements.txt` and the install the dependencies using `pip`
+
+---
+
+<!-- _header: Intro to Docker compose -->
+
+```docker
+FROM python:3.11-slim
+
+WORKDIR /app
+COPY webserver_advanced.py .
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+EXPOSE 5000
+CMD ["python", "webserver_advanced.py"]
+```
+
+---
+
+<!-- _header: Intro to Docker compose -->
+
+- Create a new file named `docker-compose.yml` where we would define the configuration for both of our containers (webserver + postgres database), volumes and networking between both the containers so that the webserver can connect with postgres database
+- Docker compose creates a bridge network for the project and all the services in the compose file are automatically connected to this network
+- Docker compose injects an internal DNS resolver using which containers can reach out to each other using their service names defined in `docker-compose.yml`
+
+---
+
+<!-- _header: Intro to Docker compose -->
+
+```docker
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.advanced
+    ports:
+      - "5000:5000"
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: testdb
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: testdb
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+networks:
+  app-network:
+
+volumes:
+  pgdata:
+```
+
+---
+
+<!-- _header: Intro to Docker compose -->
+
+- To build + run the containers, run `docker-compose up --build` within the directory where the `docker-compose.yml` file is present
+- To run it as a background process, add `-d` flag
+- To stop all the running containers + remove their volumes + remove any additional other orphans, run `docker-compose down -v --remove-orphans`
+- To stream logs to STDOUT in real-time, run `docker-compose logs -f` command
+- To run a specific command within a container, run `docker-compose exec <service> <command>` command
+
+---
+
+<!-- _header: Intro to Kubernetes -->
+
+- Docker Compose is great for running multiple containers on a single host, but in real-world production environments, applications need to scale across multiple machines and handle failures automatically.
+- Kubernetes, or k8s, is a platform designed to **orchestrate containers** at scale. It manages deployment, scaling, networking, and health of your containerized applications.
+- With Kubernetes, you don’t have to manually start or link containers. You define your desired state (like how many instances of a service you want) in a YAML file, and K8s ensures the system matches that state.
+- Kubernetes introduces core concepts such as **Pods** (the smallest deployable unit), **Deployments** (manages updates and scaling), and **Services** (handles networking and load balancing between Pods), making applications more resilient and easier to manage across clusters of machines.
+
+---
+
+<!-- _header: Intro to Kubernetes -->
+
+- k8s is all about taking a bunch of VMs which run docker containers and having an unified API layer to which the developer can interact with to manage (orchestrate) those VMs
+- **Pods**: Collection of containers which are co-located on a single machine
+- **Service**: A service layer is generally above the pods which acts like a load balancer which bring the traffic down to a collection of pods
+- **Deployment**: Deployment is a high level abstraction that manages the pods and ensures that they've reached the desired state for your application. It manages number of replicas for each application, rolling updates and rollbacks, self-healing
+
+---
+
+<!-- _header: Intro to Kubernetes -->
+
+![bg 90%](./assets/k8s.png)
+
+---
+
+<!-- _header: Infrastructure as Code (IaC) -->
+
+![bg 75%](./assets/aws_ui.png)
+
+---
+
+```
+# Configure the AWS Provider
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = "us-east-1"
+}
+```
+
+---
+
+```
+# Create an S3 Bucket
+resource "aws_s3_bucket" "my_bucket" {
+  bucket = "my-devops-workshop-bucket-12345"  # Change this to a unique name
+
+  tags = {
+    Name        = "My Workshop Bucket"
+    Environment = "Learning"
+  }
+}
+
+# Block public access (security best practice)
+resource "aws_s3_bucket_public_access_block" "my_bucket_block" {
+  bucket = aws_s3_bucket.my_bucket.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+```
+
+---
+
+```
+# Output the bucket name
+output "bucket_name" {
+  value = aws_s3_bucket.my_bucket.id
+}
+```
