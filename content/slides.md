@@ -42,6 +42,13 @@ style: |
 
 ---
 
+<!-- _header: Reference -->
+
+- All the source files' content are available under the `misc` folder at https://github.com/0xmukesh/ham-devops-workshop
+- Slides for this workshop is also available within the above repo under `pdfs` folder
+
+---
+
 <!-- _header: Intro to DevOps -->
 
 - DevOps = development + operations
