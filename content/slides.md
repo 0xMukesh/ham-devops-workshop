@@ -142,7 +142,7 @@ style: |
 <!-- _header: Intro to Git: Basics of Git -->
 
 - Create a new folder named `git_test` and checkout to that folder using `cd`
-- Convert that folder to a git **repository** (specifically a local repository) by running `git init` command within that folder.
+- Convert that folder to a git **repository** (specifically a local repository) by running `git init -b main` command within that folder.
   - `git init` command creates a `.git` folder within the `git_test` folder. `.git` folder all the information related to version control of the project such as commit history.
 - Create a new file named `test.txt` and fill it up with any information you feel (be creative!).
 - Run `git status`, you should be seeing output which says that `test.txt` file is currently **untracked**.
@@ -160,6 +160,12 @@ style: |
   - Initially, a file is untracked by git i.e. git doesn't track the changes which is done within it
   - To tell git that you need to track this specific file, you need to explicitly run `git add` command, which moves the files to staging area
   - Files that are marked to be included in the next snapshot/commit are present in the staging area i.e. only staged files are recorded when you commit
+
+---
+
+<!-- _header: Intro to Git: Basics of Git -->
+
+![bg 70%](./assets/filestatus_lifecycle.png)
 
 ---
 
@@ -749,3 +755,11 @@ output "bucket_name" {
   value = aws_s3_bucket.my_bucket.id
 }
 ```
+
+---
+
+```
+
+```
+
+---
